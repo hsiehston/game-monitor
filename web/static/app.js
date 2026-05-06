@@ -1,11 +1,19 @@
 const { useEffect, useState } = React;
 const PAGE_SIZE = 8;
+const BAHAMUT_BSN = "17608";
+const FONT_OPTIONS = [
+  { value: "editorial", label: "閱讀襯線" },
+  { value: "sans", label: "清爽黑體" },
+  { value: "compact", label: "緊湊資料" },
+];
 
-function formatDate(value) {
-  if (!value) {
-    return "未知時間";
-  }
-  return String(value).replace("T", " ").slice(0, 19);
+function postUrl(postId) {
+  return `https://forum.gamer.com.tw/C.php?bsn=${BAHAMUT_BSN}&snA=${postId}`;
+}
+
+function commentUrl(comment) {
+  const baseUrl = postUrl(comment.post_id);
+  return comment.comment_id ? `${baseUrl}#Commendcontent_${comment.comment_id}` : baseUrl;
 }
 
 async function fetchJson(url) {
@@ -38,7 +46,15 @@ function PostBarChart({ posts }) {
     <div className="chart-panel">
       {top.map((post) => (
         <div className="chart-row" key={post.post_id}>
-          <div className="chart-label" title={post.title}>{post.title}</div>
+          <a
+            className="chart-label"
+            href={postUrl(post.post_id)}
+            target="_blank"
+            rel="noreferrer"
+            title={post.title}
+          >
+            {post.title}
+          </a>
           <div className="chart-track">
             <div
               className="chart-fill"
@@ -55,16 +71,19 @@ function PostBarChart({ posts }) {
 function PostCard({ post }) {
   return (
     <article className="data-card">
-      <div className="data-card__title">{post.title}</div>
+      <a
+        className="data-card__title"
+        href={postUrl(post.post_id)}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {post.title}
+      </a>
       <div className="data-card__meta">
         <span>作者 {post.author || "未知"}</span>
         <span>文章 GP {post.gp_count}</span>
         <span>留言 {post.comment_count}</span>
         <span>最高留言 GP {post.top_comment_gp}</span>
-      </div>
-      <div className="data-card__foot">
-        <span>文章編號 {post.post_id}</span>
-        <span>{formatDate(post.created_at)}</span>
       </div>
     </article>
   );
@@ -99,7 +118,14 @@ function Pagination({ label, page, total, onPageChange }) {
 function CommentCard({ comment }) {
   return (
     <article className="data-card">
-      <div className="data-card__title">{comment.title}</div>
+      <a
+        className="data-card__title"
+        href={commentUrl(comment)}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {comment.title}
+      </a>
       <div className="data-card__meta">
         <span>{comment.author || "匿名"}</span>
         <span>B{comment.floor}</span>
@@ -107,10 +133,6 @@ function CommentCard({ comment }) {
         <span>BP {comment.bp}</span>
       </div>
       <div className="data-card__content">{comment.content || "無內容"}</div>
-      <div className="data-card__foot">
-        <span>文章編號 {comment.post_id}</span>
-        <span>{formatDate(comment.created_at)}</span>
-      </div>
     </article>
   );
 }
@@ -155,6 +177,7 @@ function App() {
   const [lastQuery, setLastQuery] = useState(filters);
   const [postPage, setPostPage] = useState(1);
   const [commentPage, setCommentPage] = useState(1);
+  const [fontChoice, setFontChoice] = useState("editorial");
 
   const runQuery = async (queryFilters = filters) => {
     setLoading(true);
@@ -209,7 +232,7 @@ function App() {
   const pagedComments = comments.slice((commentPage - 1) * PAGE_SIZE, commentPage * PAGE_SIZE);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell font-${fontChoice}`}>
       <div className="hero">
         <div className="hero-copy">
           <div className="eyebrow">Bahamut Monitor</div>
@@ -223,6 +246,17 @@ function App() {
           <div className="hero-chip">查詢即時回應</div>
           <div className="hero-chip alt">React 儀表板</div>
           <div className="hero-chip">熱門關鍵字</div>
+          <label className="font-picker">
+            字體
+            <select
+              value={fontChoice}
+              onChange={(event) => setFontChoice(event.target.value)}
+            >
+              {FONT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
