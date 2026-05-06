@@ -32,5 +32,15 @@ services:
     depends_on:
       - db
 
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      DB_URL: postgresql://monitor:yourpassword@db:5432/gamedb
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
