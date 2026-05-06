@@ -1,7 +1,22 @@
-CREATE TABLE IF NOT EXISTS crawl_runs (
-    id BIGSERIAL PRIMARY KEY,
-    source TEXT NOT NULL,
-    status TEXT NOT NULL,
-    checked_at TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS posts (
+    id          SERIAL PRIMARY KEY,
+    platform    VARCHAR(20) NOT NULL,
+    post_id     VARCHAR(50) UNIQUE NOT NULL,
+    title       TEXT,
+    author      VARCHAR(100),
+    reply_count INT DEFAULT 0,
+    created_at  TIMESTAMP,
+    fetched_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id         SERIAL PRIMARY KEY,
+    post_id    VARCHAR(50) REFERENCES posts(post_id),
+    floor      INT,
+    author     VARCHAR(100),
+    content    TEXT,
+    gp         INT DEFAULT 0,
+    bp         INT DEFAULT 0,
+    created_at TIMESTAMP,
+    fetched_at TIMESTAMP DEFAULT NOW()
 );
