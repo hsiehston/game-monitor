@@ -1,3 +1,5 @@
+import sys
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 from bahamut import crawl_board
 from db import save_comments, save_post
@@ -18,10 +20,31 @@ def job():
     print(f"完成，共 {len(posts)} 篇文章、{len(all_comments)} 則留言")
 
 
-# 啟動時先執行一次
-job()
+def run_schedule():
+    job()
+    scheduler = BlockingScheduler()
+    scheduler.add_job(job, "interval", hours=1)
+    print("排程啟動，每小時自動抓取一次")
+    scheduler.start()
 
-scheduler = BlockingScheduler()
-scheduler.add_job(job, "interval", hours=1)
-print("排程啟動，每小時自動抓取一次")
-scheduler.start()
+
+def print_usage():
+    print("用法: python main.py [idle|run-once|schedule]")
+
+
+def main():
+    command = sys.argv[1] if len(sys.argv) > 1 else "idle"
+
+    if command == "run-once":
+        job()
+    elif command == "schedule":
+        run_schedule()
+    elif command == "idle":
+        print("crawler 容器待命中，使用 run-once 或 schedule 來啟動抓取。")
+    else:
+        print_usage()
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

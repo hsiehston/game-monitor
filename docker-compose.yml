@@ -26,6 +26,7 @@ services:
   crawler:
     build: ./crawler
     restart: unless-stopped
+    command: ["python", "main.py", "idle"]
     environment:
       DB_URL: postgresql://monitor:yourpassword@db:5432/gamedb
     depends_on:
