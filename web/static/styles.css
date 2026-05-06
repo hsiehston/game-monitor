@@ -219,6 +219,10 @@ button {
   gap: 18px;
 }
 
+.content-grid > * {
+  min-width: 0;
+}
+
 .chart-panel {
   display: grid;
   gap: 10px;
@@ -261,11 +265,13 @@ button {
 .card-list {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .data-card {
   border-top: 1px solid var(--line);
   padding-top: 12px;
+  min-width: 0;
 }
 
 .data-card:first-child {
@@ -276,6 +282,8 @@ button {
 .data-card__title {
   font-size: 1.05rem;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .data-card__meta,
@@ -286,11 +294,44 @@ button {
   color: var(--muted);
   font-size: 0.88rem;
   margin-top: 7px;
+  min-width: 0;
+}
+
+.data-card__meta span,
+.data-card__foot span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .data-card__content {
   margin-top: 8px;
   line-height: 1.6;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.page-button {
+  background: rgba(0, 122, 120, 0.12);
+  color: var(--accent-2);
+  padding: 8px 12px;
+}
+
+.page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .keyword-cloud {
@@ -337,5 +378,9 @@ button {
 
   .chart-value {
     text-align: left;
+  }
+
+  .pagination {
+    justify-content: space-between;
   }
 }

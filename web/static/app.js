@@ -1,4 +1,5 @@
 const { useEffect, useState } = React;
+const PAGE_SIZE = 8;
 
 function formatDate(value) {
   if (!value) {
@@ -69,6 +70,32 @@ function PostCard({ post }) {
   );
 }
 
+function Pagination({ label, page, total, onPageChange }) {
+  const pageCount = Math.max(Math.ceil(total / PAGE_SIZE), 1);
+
+  return (
+    <div className="pagination" aria-label={label}>
+      <button
+        className="page-button"
+        type="button"
+        onClick={() => onPageChange(Math.max(page - 1, 1))}
+        disabled={page <= 1}
+      >
+        上一頁
+      </button>
+      <span>{page} / {pageCount}</span>
+      <button
+        className="page-button"
+        type="button"
+        onClick={() => onPageChange(Math.min(page + 1, pageCount))}
+        disabled={page >= pageCount}
+      >
+        下一頁
+      </button>
+    </div>
+  );
+}
+
 function CommentCard({ comment }) {
   return (
     <article className="data-card">
@@ -126,10 +153,14 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastQuery, setLastQuery] = useState(filters);
+  const [postPage, setPostPage] = useState(1);
+  const [commentPage, setCommentPage] = useState(1);
 
   const runQuery = async (queryFilters = filters) => {
     setLoading(true);
     setError("");
+    setPostPage(1);
+    setCommentPage(1);
 
     const params = new URLSearchParams({
       min_gp: queryFilters.minGp || "0",
@@ -173,6 +204,9 @@ function App() {
     event.preventDefault();
     runQuery(filters);
   };
+
+  const pagedPosts = posts.slice((postPage - 1) * PAGE_SIZE, postPage * PAGE_SIZE);
+  const pagedComments = comments.slice((commentPage - 1) * PAGE_SIZE, commentPage * PAGE_SIZE);
 
   return (
     <div className="app-shell">
@@ -263,29 +297,45 @@ function App() {
             <div className="panel-heading">
               <div>
                 <h2>熱門文章</h2>
-                <p>依文章 GP 與留言數排序。</p>
+                <p>依文章 GP 與留言數排序，共 {posts.length} 筆。</p>
               </div>
             </div>
             <PostBarChart posts={posts} />
             <div className="card-list">
-              {posts.length ? posts.map((post) => (
+              {pagedPosts.length ? pagedPosts.map((post) => (
                 <PostCard key={post.post_id} post={post} />
               )) : <div className="empty-state">目前沒有符合條件的文章。</div>}
             </div>
+            {posts.length > PAGE_SIZE ? (
+              <Pagination
+                label="熱門文章分頁"
+                page={postPage}
+                total={posts.length}
+                onPageChange={setPostPage}
+              />
+            ) : null}
           </div>
 
           <div className="surface">
             <div className="panel-heading">
               <div>
                 <h2>高讚留言</h2>
-                <p>找出 GP 較高的留言內容。</p>
+                <p>找出 GP 較高的留言內容，共 {comments.length} 筆。</p>
               </div>
             </div>
             <div className="card-list">
-              {comments.length ? comments.map((comment) => (
+              {pagedComments.length ? pagedComments.map((comment) => (
                 <CommentCard key={comment.comment_id || `${comment.post_id}-${comment.floor}-${comment.author}`} comment={comment} />
               )) : <div className="empty-state">目前沒有符合條件的留言。</div>}
             </div>
+            {comments.length > PAGE_SIZE ? (
+              <Pagination
+                label="高讚留言分頁"
+                page={commentPage}
+                total={comments.length}
+                onPageChange={setCommentPage}
+              />
+            ) : null}
           </div>
         </section>
 
