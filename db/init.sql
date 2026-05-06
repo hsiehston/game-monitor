@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS crawl_runs (
+    id BIGSERIAL PRIMARY KEY,
+    source TEXT NOT NULL,
+    status TEXT NOT NULL,
+    checked_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
