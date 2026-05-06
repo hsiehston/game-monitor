@@ -1,3 +1,4 @@
+import re
 import time
 from dataclasses import asdict, dataclass
 
@@ -16,12 +17,13 @@ class Post:
     post_id: str
     title: str
     author: str
-    reply_count: int
+    gp_count: int
     created_at: str
 
 
 @dataclass
 class Comment:
+    comment_id: str
     post_id: str
     floor: int
     author: str
@@ -35,6 +37,9 @@ def parse_count(value: str) -> int:
     text = value.strip().replace(",", "")
     if not text:
         return 0
+    match = re.search(r"-?\d+", text)
+    if match:
+        return int(match.group())
     try:
         return int(text)
     except ValueError:
@@ -72,18 +77,9 @@ def get_post_list(bsn: str, page: int = 1) -> list[Post]:
         if not post_id:
             continue
 
-        # 互動數：一般文章用 <span title="互動：XX">
-        reply_el = row.select_one(".b-list__count__number span[title^='互動']")
-        reply_count = 0
-        if reply_el:
-            title_attr = reply_el.get("title", "")
-            if "：" in title_attr:
-                reply_count = parse_count(title_attr.split("：")[1])
-        else:
-            # 置頂文章用舊格式
-            reply_el = row.select_one(".b-list__count__reply")
-            if reply_el:
-                reply_count = parse_count(reply_el.text)
+        # 列表頁左側 GP 數
+        gp_el = row.select_one(".b-list__summary__gp")
+        gp_count = parse_count(gp_el.text) if gp_el else 0
 
         author_el = row.select_one(".b-list__count__user a")
         time_el = row.select_one(".b-list__time")
@@ -93,7 +89,7 @@ def get_post_list(bsn: str, page: int = 1) -> list[Post]:
             post_id=post_id,
             title=title,
             author=author_el.text.strip() if author_el else "",
-            reply_count=reply_count,
+            gp_count=gp_count,
             created_at=time_el.get("title", "") if time_el else "",
         ))
 
@@ -111,26 +107,37 @@ def get_comments(bsn: str, post_id: str) -> list[Comment]:
         res.raise_for_status()
         soup = BeautifulSoup(res.text, "html.parser")
 
-        rows = soup.select("section.c-section")
+        rows = soup.select(".c-reply__item")
         if not rows:
             break
 
         for row in rows:
-            floor_el = row.select_one(".floor")
-            author_el = row.select_one(".username")
-            content_el = row.select_one(".c-article__content")
-            time_el = row.select_one("time")
-            gp_el = row.select_one(".gp-btn span")
-            bp_el = row.select_one(".bp-btn span")
+            comment_id = row.get("id", "").replace("Commendcontent_", "")
+            if not comment_id:
+                continue
+
+            floor_el = row.select_one("[name='comment_floor']")
+            author_el = row.select_one(".reply-content__user")
+            content_el = row.select_one(".comment_content")
+            time_el = row.select_one("[data-tippy-content^='留言時間']")
+            gp_el = row.select_one(".gp-count")
+            bp_el = row.select_one(".bp-count")
+            floor = parse_count(floor_el.text) if floor_el else 0
+            if floor == 0:
+                floor = len(comments) + 1
+            created_at = ""
+            if time_el:
+                created_at = time_el.get("data-tippy-content", "").replace("留言時間", "").strip()
 
             comments.append(Comment(
+                comment_id=comment_id,
                 post_id=post_id,
-                floor=parse_count(floor_el.text) if floor_el else 0,
+                floor=floor,
                 author=author_el.text.strip() if author_el else "",
                 content=content_el.get_text(strip=True) if content_el else "",
-                gp=parse_count(gp_el.text) if gp_el else 0,
-                bp=parse_count(bp_el.text) if bp_el else 0,
-                created_at=time_el.get("datetime", "") if time_el else "",
+                gp=parse_count(gp_el.get("data-gp", gp_el.text)) if gp_el else 0,
+                bp=parse_count(bp_el.get("data-bp", bp_el.text)) if bp_el else 0,
+                created_at=created_at,
             ))
 
         next_btn = soup.select_one("a.next-page")
@@ -153,7 +160,7 @@ def crawl_board(bsn: str, max_pages: int = 5) -> tuple[list[dict], list[dict]]:
         posts = get_post_list(bsn, page)
 
         for post in posts:
-            print(f"  [{post.reply_count} 樓] {post.title}")
+            print(f"  [GP：{post.gp_count}] {post.title}")
             comments = get_comments(bsn, post.post_id)
             all_posts.append(asdict(post))
             all_comments.extend(asdict(comment) for comment in comments)

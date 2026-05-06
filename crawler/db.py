@@ -20,10 +20,14 @@ def save_post(post: dict):
     post = _none_if_empty(post, "created_at")
     with Session() as session:
         session.execute(text("""
-            INSERT INTO posts (platform, post_id, title, author, reply_count, created_at)
-            VALUES (:platform, :post_id, :title, :author, :reply_count, :created_at)
+            INSERT INTO posts (platform, post_id, title, author, gp_count, created_at)
+            VALUES (:platform, :post_id, :title, :author, :gp_count, :created_at)
             ON CONFLICT (post_id) DO UPDATE
-                SET reply_count = EXCLUDED.reply_count
+                SET title = EXCLUDED.title,
+                    author = EXCLUDED.author,
+                    gp_count = EXCLUDED.gp_count,
+                    created_at = EXCLUDED.created_at,
+                    fetched_at = NOW()
         """), post)
         session.commit()
 
@@ -33,8 +37,15 @@ def save_comments(comments: list[dict]):
         for c in comments:
             c = _none_if_empty(c, "created_at")
             session.execute(text("""
-                INSERT INTO comments (post_id, floor, author, content, gp, bp, created_at)
-                VALUES (:post_id, :floor, :author, :content, :gp, :bp, :created_at)
-                ON CONFLICT DO NOTHING
+                INSERT INTO comments (comment_id, post_id, floor, author, content, gp, bp, created_at)
+                VALUES (:comment_id, :post_id, :floor, :author, :content, :gp, :bp, :created_at)
+                ON CONFLICT (comment_id) DO UPDATE
+                    SET author = EXCLUDED.author,
+                        floor = EXCLUDED.floor,
+                        content = EXCLUDED.content,
+                        gp = EXCLUDED.gp,
+                        bp = EXCLUDED.bp,
+                        created_at = EXCLUDED.created_at,
+                        fetched_at = NOW()
             """), c)
         session.commit()
