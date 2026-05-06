@@ -1,4 +1,5 @@
 import sys
+import time
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from bahamut import crawl_board
@@ -6,7 +7,7 @@ from db import save_comments, save_post
 
 
 BSN = "17608"
-MAX_PAGES = 3
+MAX_PAGES = 2
 
 
 def job():
@@ -32,6 +33,12 @@ def print_usage():
     print("用法: python main.py [idle|run-once|schedule]")
 
 
+def run_idle():
+    print("crawler 容器待命中，使用 run-once 或 schedule 來啟動抓取。")
+    while True:
+        time.sleep(3600)
+
+
 def main():
     command = sys.argv[1] if len(sys.argv) > 1 else "idle"
 
@@ -40,7 +47,7 @@ def main():
     elif command == "schedule":
         run_schedule()
     elif command == "idle":
-        print("crawler 容器待命中，使用 run-once 或 schedule 來啟動抓取。")
+        run_idle()
     else:
         print_usage()
         raise SystemExit(1)

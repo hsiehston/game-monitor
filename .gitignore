@@ -7,3 +7,5 @@ postgres_data/
 
 .DS_Store
 Thumbs.db
+
+db/migrate*.sql
