@@ -42,7 +42,6 @@ def parse_count(value: str) -> int:
 
 
 def get_post_list(bsn: str, page: int = 1) -> list[Post]:
-    """抓哈啦板文章列表"""
     url = f"https://forum.gamer.com.tw/B.php?bsn={bsn}&page={page}"
     res = requests.get(url, headers=HEADERS, timeout=20)
     res.raise_for_status()
@@ -50,13 +49,19 @@ def get_post_list(bsn: str, page: int = 1) -> list[Post]:
 
     posts = []
     for row in soup.select("tr.b-list-item"):
+        # 標題：置頂是 <a>，一般文章是 <p>
         title_el = row.select_one(".b-list__main__title")
-        author_el = row.select_one(".b-list__count__author")
-        reply_el = row.select_one(".b-list__count__reply")
-        time_el = row.select_one(".b-list__time")
-        link_el = row.select_one("a.b-list__main__title")
+        if not title_el:
+            continue
 
-        if not title_el or not link_el:
+        title = title_el.text.strip()
+
+        # 連結：優先找 <a class="b-list__main__title">，找不到就找外層 <a>
+        link_el = row.select_one("a.b-list__main__title")
+        if not link_el:
+            link_el = row.select_one("td.b-list__main > a")
+
+        if not link_el:
             continue
 
         href = link_el.get("href", "")
@@ -67,12 +72,28 @@ def get_post_list(bsn: str, page: int = 1) -> list[Post]:
         if not post_id:
             continue
 
+        # 互動數：一般文章用 <span title="互動：XX">
+        reply_el = row.select_one(".b-list__count__number span[title^='互動']")
+        reply_count = 0
+        if reply_el:
+            title_attr = reply_el.get("title", "")
+            if "：" in title_attr:
+                reply_count = parse_count(title_attr.split("：")[1])
+        else:
+            # 置頂文章用舊格式
+            reply_el = row.select_one(".b-list__count__reply")
+            if reply_el:
+                reply_count = parse_count(reply_el.text)
+
+        author_el = row.select_one(".b-list__count__user a")
+        time_el = row.select_one(".b-list__time")
+
         posts.append(Post(
             platform="bahamut",
             post_id=post_id,
-            title=title_el.text.strip(),
+            title=title,
             author=author_el.text.strip() if author_el else "",
-            reply_count=parse_count(reply_el.text) if reply_el else 0,
+            reply_count=reply_count,
             created_at=time_el.get("title", "") if time_el else "",
         ))
 
